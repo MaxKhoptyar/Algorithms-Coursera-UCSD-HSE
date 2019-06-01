@@ -28,7 +28,7 @@ namespace SortingToolbox
             {
                 return min;
             }
-            strip = MergeSort(strip, 0, strip.Length - 1);
+            strip = MergeSort(strip, 0, strip.Length - 1,false);
 
             for (int i = 0; i < size; ++i)
                 for (int j = i + 1; j < size && (strip[j].y - strip[i].y) < min; ++j)
