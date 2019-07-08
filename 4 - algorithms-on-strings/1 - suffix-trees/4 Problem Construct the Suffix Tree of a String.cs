@@ -2,178 +2,123 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
-namespace ConsoleApplication15
+namespace ConsoleApplication1
 {
-    class Edge
+    class Vertice
     {
-        public char[] ValueList;
-        public List<Edge> Childs;
-    }
-    class Edge2
-    {
-        public char Value;
-        public List<Edge2> Childs;
+        public int Start;
+        public int Length;
+        public char[] Src;
+        public List<Vertice> Childs;
+
+        public Vertice(int start, int length, char[] src)
+        {
+            Start = start;
+            Length = length;
+            Src = src;
+            Childs = new List<Vertice>();
+        }
+
+        public string Value
+        {
+            get
+            {
+                return new string(Src, Start, Length);
+            }
+        }
     }
 
     class Program
     {
-        public static List<string> l1 = new List<string>();
-        public static List<string> l2 = new List<string>();
+        static char[] Arr;
 
         static void Main(string[] args)
         {
             var input = Console.ReadLine();
 
-            var root = new Edge();
-            root.Childs = new List<Edge>();
+            var root = CreateSuffixTree(input);
 
-            var inputArr = input.ToCharArray();
-            var length = inputArr.Length;
-            var root2 = new Edge2();
-            root2.Childs = new List<Edge2>();
-            for (int i = 0; i < length; i++)
+            var listVertices = root.Childs;
+            var sb = new StringBuilder();
+            while (listVertices.Any())
             {
-                var edge = root2;
-                for (int j = i; j < length; j++)
-                {
-                    var searchElement = edge.Childs.FirstOrDefault(c => c.Value == inputArr[j]);
-                    if (searchElement == null)
-                    {
-                        var newEdge = new Edge2();
-                        newEdge.Value = inputArr[j];
-                        newEdge.Childs = new List<Edge2>();
+                var newListVertices = new List<Vertice>();
 
-                        edge.Childs.Add(newEdge);
-                        edge = newEdge;
-                    }
-                    else
+                foreach (var v in listVertices)
+                {
+                    sb.Append(string.Format("{0}\n", v.Value));
+                    foreach (var c in v.Childs)
                     {
-                        edge = searchElement;
+                        newListVertices.Add(c);
                     }
                 }
+
+                listVertices = newListVertices;
             }
-
-            foreach (var c in root2.Childs)
-            {
-                var sb= new StringBuilder();
-                Dfs2(c, sb, l2);
-            }
-
-            for (int i = length - 1; i >= 0; i--)
-            {
-                var curentEdge = root;
-
-                for (int j = i; j < length; j++)
-                {
-                    var searchElement = curentEdge.Childs.FirstOrDefault(x => x.ValueList[0] == inputArr[j]);
-                    if (searchElement == null)
-                    {
-                        var newEdge = new Edge();
-                        newEdge.ValueList = new char[length - j];
-
-                        for (int k = 0; k < length - j; k++)
-                        {
-                            newEdge.ValueList[k] = inputArr[j + k];
-                        }
-
-                        newEdge.Childs = new List<Edge>();
-
-                        curentEdge.Childs.Add(newEdge);
-                        break;
-                    }
-                    else
-                    {
-                        var arr = searchElement.ValueList;
-
-                        var minL = Math.Min(arr.Length, length - j);
-                        var copyL = 1;
-                        for (int k = 1; k < minL; k++)
-                        {
-                            if (arr[k] == inputArr[j + k])
-                            {
-                                copyL++;
-                            }
-                            else
-                            {
-                                break;
-                            }
-                        }
-
-                        if (copyL < arr.Length)
-                        {
-                            var newEdge = new Edge();
-
-                            newEdge.ValueList = new char[arr.Length - copyL];
-                            for (int k = copyL; k < arr.Length; k++)
-                            {
-                                newEdge.ValueList[k - copyL] = arr[k];
-                            }
-                            newEdge.Childs = searchElement.Childs;
-                            searchElement.Childs = new List<Edge>();
-                            searchElement.Childs.Add(newEdge);
-                            searchElement.ValueList = new char[copyL];
-                            for (int k = 0; k < copyL; k++)
-                            {
-                                searchElement.ValueList[k] = arr[k];
-                            }
-                        }
-                        j = j + copyL - 1;
-                        curentEdge = searchElement;
-                    }
-                }
-            }
-
-            foreach (var child in root.Childs)
-            {
-                Dfs(child, l1);
-            }
-
-            Console.WriteLine(l1.Count);
-            Console.WriteLine(l2.Count);
-
-            var counter = 0;
-            foreach (var e in l1)
-            {
-                if (l2.Contains(e))
-                {
-                    counter++;
-                    l2.Remove(e);
-                }
-            }
-            if (counter == l1.Count)
-            {
-                Console.WriteLine("yes");
-            }
-            Console.ReadLine();
+            Console.WriteLine(sb);
+            //Console.ReadLine();
         }
 
-        private static void Dfs2(Edge2 edge2, StringBuilder sb, List<string> list)
+        private static Vertice CreateSuffixTree(string input)
         {
-            sb.Append(edge2.Value);
-            if (edge2.Childs.Count == 1)
+            var root = new Vertice(0, 0, new char[0]);
+
+            var arrChar = input.ToCharArray();
+
+            for (int i = 0; i < arrChar.Length; i++)
             {
-                Dfs2(edge2.Childs.First(),sb,list);
+                AddToSuffixTree(root, arrChar, i, arrChar.Length - i);
             }
-            else
-            {
-                list.Add(sb.ToString());
-                foreach (var v in edge2.Childs)
-                {
-                    var sb2 = new StringBuilder();
-                    Dfs2(v,sb2,list);
-                }
-            }
+
+            return root;
         }
 
-        public static void Dfs(Edge edge,List<string> l)
+        private static void AddToSuffixTree(Vertice root, char[] src, int start, int length)
         {
-            Console.WriteLine(new string(edge.ValueList));
-            l.Add(new string(edge.ValueList));
-            foreach (var c in edge.Childs)
+            var vertice = root;
+            var currentCharPattern = start;
+            var lastCharPattern = start + length;
+
+            while (currentCharPattern < lastCharPattern)
             {
-                Dfs(c,l);
+                var searchVertice = vertice.Childs.FirstOrDefault(x => src[currentCharPattern] == x.Src[x.Start]);
+
+                if (searchVertice == null)
+                {
+                    var newVertice = new Vertice(currentCharPattern, length - (currentCharPattern - start), src);
+                    vertice.Childs.Add(newVertice);
+                    return;
+                }
+
+                var currentCharTree = searchVertice.Start;
+                var lastCharTree = currentCharTree + searchVertice.Length;
+
+                while (currentCharTree < lastCharTree && currentCharPattern < lastCharPattern)
+                {
+                    if (src[currentCharPattern] == searchVertice.Src[currentCharTree])
+                    {
+                        currentCharTree++;
+                        currentCharPattern++;
+                        continue;
+                    }
+                    break;
+                }
+
+                if (currentCharTree == lastCharTree && currentCharPattern < lastCharPattern)
+                {
+                    vertice = searchVertice;
+                }
+                else
+                {
+                    var newVertice = new Vertice(currentCharTree, searchVertice.Length - currentCharTree - searchVertice.Start, src);
+                    searchVertice.Length = currentCharTree - searchVertice.Start;
+
+                    newVertice.Childs = searchVertice.Childs;
+                    searchVertice.Childs = new List<Vertice>();
+                    searchVertice.Childs.Add(newVertice);
+                    vertice = newVertice;
+                }
             }
         }
     }
