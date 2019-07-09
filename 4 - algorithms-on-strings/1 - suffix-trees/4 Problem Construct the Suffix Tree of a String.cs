@@ -31,8 +31,6 @@ namespace ConsoleApplication1
 
     class Program
     {
-        static char[] Arr;
-
         static void Main(string[] args)
         {
             var input = Console.ReadLine();
@@ -111,13 +109,13 @@ namespace ConsoleApplication1
                 }
                 else
                 {
-                    var newVertice = new Vertice(currentCharTree, searchVertice.Length - currentCharTree - searchVertice.Start, src);
+                    var newVertice = new Vertice(currentCharTree, searchVertice.Length - (currentCharTree - searchVertice.Start), src);
                     searchVertice.Length = currentCharTree - searchVertice.Start;
 
                     newVertice.Childs = searchVertice.Childs;
                     searchVertice.Childs = new List<Vertice>();
                     searchVertice.Childs.Add(newVertice);
-                    vertice = newVertice;
+                    vertice = searchVertice;
                 }
             }
         }

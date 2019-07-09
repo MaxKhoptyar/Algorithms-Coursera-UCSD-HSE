@@ -10,23 +10,32 @@ namespace ConsoleApplication15
 
     class Program
     {
-        static char[] _arr;
         static int _positionLattice;
-        static string _minString = null;
-        static int _minStringLength = int.MaxValue;
-        class Edge
+        static int _minStringStart;
+        static int _minStringLength;
+
+        class Vertice
         {
-            public int Id;
             public int Start;
             public int Length;
-            public List<Edge> Childs;
+            public int SuffixLength;
+            public List<Vertice> Childs;
             public bool IsCandidate;
-            public string StrContent;
+            public char[] Src;
+
+            public Vertice(int start, int length, char[] src)
+            {
+                Start = start;
+                Length = length;
+                Src = src;
+                Childs = new List<Vertice>();
+            }
+
             public string Content
             {
                 get
                 {
-                    return new string(_arr, Start, Length);
+                    return new string(Src,Start,Length);
                 }
             }
         }
@@ -36,145 +45,121 @@ namespace ConsoleApplication15
             var input = Console.ReadLine();
             var firstArr = input.ToCharArray();
             var firstArrLength = firstArr.Length;
+
             input = Console.ReadLine();
             var secondArr = input.ToCharArray();
             var secondArrLength = secondArr.Length;
 
             var length = firstArrLength + secondArrLength + 2;
-            _arr = new char[length];
-            for (int i = 0; i < firstArrLength; i++)
-            {
-                _arr[i] = firstArr[i];
-            }
-            _arr[firstArrLength] = '#';
-            for (int i = 0; i < secondArrLength; i++)
-            {
-                _arr[i + 1 + firstArrLength] = secondArr[i];
-            }
-            _arr[length - 1] = '$';
+            var arrChar = new char[length];
+            Array.Copy(firstArr, 0, arrChar, 0, firstArrLength);
+            Array.Copy(secondArr, 0, arrChar, firstArrLength + 1, firstArrLength);
+            arrChar[firstArrLength] = '#';
+            arrChar[length - 1] = '$';
+
             _positionLattice = firstArrLength;
-            var root = new Edge();
-            root.Childs = new List<Edge>();
-            var counter = 0;
-            var arrayEdges = new Edge[10000];
-            for (int i = length - 1; i >= 0; i--)
-            {
-                var curentEdge = root;
+            _minStringLength = int.MaxValue;
+            var root = CreateSuffixTree(arrChar);
 
-                for (int j = i; j < length; j++)
-                {
-                    Edge searchElement = null;
-                    var c = _arr[j];
-                    foreach (var v in curentEdge.Childs)
-                    {
-                        if (_arr[v.Start] == c)
-                        {
-                            searchElement = v;
-                            break;
-                        }
-                    }
-                    if (searchElement == null)
-                    {
-                        var newEdge = new Edge();
-                        newEdge.Length = length - j;
-                        newEdge.Start = j;
-                        newEdge.Childs = new List<Edge>();
-                        newEdge.Id = counter;
-                        curentEdge.Childs.Add(newEdge);
-                        arrayEdges[newEdge.Id] = newEdge;
-                        counter++;
-                        break;
-                    }
-                    else
-                    {
-
-                        var minL = Math.Min(searchElement.Length, length - j);
-                        var copyL = 1;
-                        for (int k = 1; k < minL; k++)
-                        {
-                            if (_arr[searchElement.Start + k] == _arr[j + k])
-                            {
-                                copyL++;
-                            }
-                            else
-                            {
-                                break;
-                            }
-                        }
-
-                        if (copyL < searchElement.Length)
-                        {
-                            var newEdge = new Edge();
-
-                            newEdge.Start = searchElement.Start + copyL;
-                            newEdge.Length = searchElement.Length - copyL;
-                            newEdge.Childs = searchElement.Childs;
-                            newEdge.Id = counter;
-                            arrayEdges[newEdge.Id] = newEdge;
-                            counter++;
-
-                            searchElement.Childs = new List<Edge>();
-
-                            searchElement.Childs.Add(newEdge);
-                            searchElement.Length = copyL;
-                            searchElement.Start = j;
-
-                        }
-                        j = j + copyL - 1;
-                        curentEdge = searchElement;
-                    }
-                }
-            }
-            Dfs(root, "");
-            Console.WriteLine(_minString);
+            Dfs(root, 0);
+            Console.WriteLine(new string(arrChar,_minStringStart,_minStringLength));
+            Console.ReadLine();
         }
 
-
-        static void Dfs(Edge edge, string str)
+        private static Vertice CreateSuffixTree(char[] arrChar)
         {
-            var count = edge.Childs.Count;
-            var sb = new StringBuilder();
-            sb.Append(str);
-            if (count > 0)
+            var root = new Vertice(0, 0, new char[0]);
+
+            for (int i = 0; i < arrChar.Length; i++)
             {
-                sb.Append(_arr, edge.Start, edge.Length);
-                edge.StrContent = sb.ToString();
-                var counter = 0;
-                foreach (var child in edge.Childs)
+                AddToSuffixTree(root, arrChar, i, arrChar.Length - i);
+            }
+
+            return root;
+        }
+
+        private static void AddToSuffixTree(Vertice root, char[] src, int start, int length)
+        {
+            var vertice = root;
+            var currentCharPattern = start;
+            var lastCharPattern = start + length;
+
+            while (currentCharPattern < lastCharPattern)
+            {
+                var searchVertice = vertice.Childs.FirstOrDefault(x => src[currentCharPattern] == x.Src[x.Start]);
+
+                if (searchVertice == null)
                 {
-                    Dfs(child, edge.StrContent);
-                    if (child.IsCandidate)
-                    {
-                        counter++;
-                    }
+                    var newVertice = new Vertice(currentCharPattern, length - (currentCharPattern - start), src);
+                    vertice.Childs.Add(newVertice);
+                    return;
                 }
 
-                if (counter == count)
+                var currentCharTree = searchVertice.Start;
+                var lastCharTree = currentCharTree + searchVertice.Length;
+
+                while (currentCharTree < lastCharTree && currentCharPattern < lastCharPattern)
                 {
-                    edge.IsCandidate = true;
-                    var l = edge.StrContent.Length;
-                    if (l > 0 && l < _minStringLength)
+                    if (src[currentCharPattern] == searchVertice.Src[currentCharTree])
                     {
-                        _minString = edge.StrContent;
-                        _minStringLength = l;
+                        currentCharTree++;
+                        currentCharPattern++;
+                        continue;
+                    }
+                    break;
+                }
+
+                if (currentCharTree == lastCharTree && currentCharPattern < lastCharPattern)
+                {
+                    vertice = searchVertice;
+                }
+                else
+                {
+                    var newVertice = new Vertice(currentCharTree, searchVertice.Length - (currentCharTree - searchVertice.Start), src);
+                    searchVertice.Length = currentCharTree - searchVertice.Start;
+
+                    newVertice.Childs = searchVertice.Childs;
+                    searchVertice.Childs = new List<Vertice>();
+                    searchVertice.Childs.Add(newVertice);
+                    vertice = searchVertice;
+                }
+            }
+        }
+
+        static void Dfs(Vertice vertice, int suffixStart)
+        {
+            if (vertice.Childs.Any())
+            {
+                vertice.SuffixLength = suffixStart + vertice.Length;
+
+                foreach (var child in vertice.Childs)
+                {
+                    Dfs(child, vertice.SuffixLength);
+                }
+
+                if (vertice.Childs.All(c => c.IsCandidate))
+                {
+                    vertice.IsCandidate = true;
+                    if (vertice.SuffixLength < _minStringLength)
+                    {
+                        _minStringStart = vertice.Start - suffixStart;
+                        _minStringLength = vertice.SuffixLength;
                     }
                 }
             }
             else
             {
-                if (edge.Start <= _positionLattice && _positionLattice < edge.Start + edge.Length)
+                if (vertice.Start <= _positionLattice && _positionLattice < vertice.Start + vertice.Length)
                 {
-                    edge.IsCandidate = true;
+                    vertice.IsCandidate = true;
 
-                    if (_arr[edge.Start] != '#')
+                    if (vertice.Src[vertice.Start] != '#')
                     {
-                        sb.Append(_arr, edge.Start, 1);
-                        edge.StrContent = sb.ToString();
-                        var l = sb.Length;
-                        if (l > 0 && l < _minStringLength)
+                        vertice.SuffixLength = suffixStart + 1;
+                        if (vertice.SuffixLength < _minStringLength)
                         {
-                            _minString = edge.StrContent;
-                            _minStringLength = l;
+                            _minStringStart = vertice.Start - suffixStart;
+                            _minStringLength = vertice.SuffixLength;
                         }
                     }
                 }
