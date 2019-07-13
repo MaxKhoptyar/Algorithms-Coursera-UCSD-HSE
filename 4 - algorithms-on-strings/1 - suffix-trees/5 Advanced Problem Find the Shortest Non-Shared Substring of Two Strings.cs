@@ -1,13 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace ConsoleApplication15
+namespace ConsoleApplication1
 {
-
-
     class Program
     {
         static int _positionLattice;
@@ -59,6 +55,7 @@ namespace ConsoleApplication15
 
             _positionLattice = firstArrLength;
             _minStringLength = int.MaxValue;
+
             var root = CreateSuffixTree(arrChar);
 
             Dfs(root, 0);
